@@ -3,7 +3,7 @@ import re, time, os
 import key_codes
 from appuifw import *
 import appuifw
-from window import Application
+from window import Application, Dialog
 from about import About
 from settings import Settings, sel_access_point
 from wmutil import *
@@ -11,13 +11,18 @@ from wmglobals import VERSION, DEFDIR
 from persist import DB
 from s60twitter import TwitterApi
 
-
 __all__ = [ "Iamdoing" ]
 __author__ = "Marcelo Barros de Almeida (marcelobarrosalmeida@gmail.com)"
 __version__ = VERSION
 __copyright__ = "Copyright (c) 2009- Marcelo Barros de Almeida"
 __license__ = "GPLv3"
 
+class Notepad(Dialog):
+    def __init__(self, cbk, txt=u""):
+        menu = [(u"Save", self.close_app),
+                (u"Discard", self.cancel_app)]
+        Dialog.__init__(self, cbk, u"New update", Text(txt), menu)
+        
 class Iamdoing(Application):
     
     def __init__(self):
@@ -35,7 +40,8 @@ class Iamdoing(Application):
         self.headlines = [(u"",u"")]
         self.timeline = {}
         self.last_idx = 0
-        self.tooltip = appuifw.InfoPopup()
+        self.update_msg = ""
+        #self.tooltip = appuifw.InfoPopup()
         sel_access_point()
         self.check_conn_params()
 
@@ -84,7 +90,7 @@ class Iamdoing(Application):
             if p < 0:
                 p = m - 1
             self.set_title(u"[%d/%d] Page %d" % (p+1,m,self.page))
-            self.tooltip.show(self.headlines[p][1], (0,30), 1750, 0.25, appuifw.EHLeftVTop )
+            #self.tooltip.show(self.headlines[p][1], (0,30), 1750, 0.25, appuifw.EHLeftVTop )
 
     def key_down(self):
         if not self.ui_is_locked():
@@ -93,7 +99,7 @@ class Iamdoing(Application):
             if p >= m:
                 p = 0
             self.set_title(u"[%d/%d] Page %d" % (p+1,m,self.page))
-            self.tooltip.show(self.headlines[p][1], (30,30), 1750, 0.25, appuifw.EHLeftVTop )
+            #self.tooltip.show(self.headlines[p][1], (30,30), 1750, 0.25, appuifw.EHLeftVTop )
 
     def check_update_value(self):
         if not self.ui_is_locked():
@@ -104,8 +110,8 @@ class Iamdoing(Application):
         self.last_idx = idx
         menu = []
         if self.timeline.has_key(self.page):
-            menu += [(u"Details", self.details),
-                     (u"Send update", self.send_update)]
+            menu += [(u"Details", self.details)]
+        menu += [(u"Send update", self.send_update)]
         if not self._is_mine(idx) and self.timeline.has_key(self.page):
             menu += [(u"Reply", self.reply)]
         if self._has_link(idx):
@@ -137,7 +143,8 @@ class Iamdoing(Application):
     
     def details(self):
         idx = self.body.current()
-        txt = self.headlines[idx][0] + u"\n" + self.headlines[idx][1]
+        #txt = self.headlines[idx][0] + u"\n" + self.headlines[idx][1]
+        txt = self.headlines[idx][1]
         note(txt,"info")
 
     def refresh_pages(self):
@@ -168,7 +175,69 @@ class Iamdoing(Application):
         self.last_idx = 0
         self.refresh()
 
-    def send_update(self): pass
+    def _splitmsg(self,msg):
+        msgs = []
+        words = msg.split()
+        frag = ""
+        for w in words:
+            if len(frag + w + "  ...")<140:
+                if frag:
+                    frag += " " + w
+                else:
+                    frag += w
+            else:
+                if len(frag) < 140 and len(frag) > 0: 
+                    frag += " ..."
+                    msgs.insert(0,frag)
+                    frag = "... " + w
+                else: # large single word ... :-(
+                    for i in range(0,len(frag),139):
+                        msgs.insert(0,frag[i:i+139])
+                    frag = w
+        msgs.insert(0,frag)
+        return msgs
+
+    def send_update_cbk(self):
+        if not self.dlg.cancel:
+            msg = self.dlg.body.get()
+            msg = unicode_to_utf8(msg)
+            # first, convert links, if any
+            http = re.compile("http://\S+", re.IGNORECASE)
+            links = re.findall(http, msg)
+            self.lock_ui()
+            if links:
+                for t in links:
+                    self.set_title(u"URL: %s" % t)
+                    try:
+                        tu = self.twitter_api.tinyfy_url(t)
+                    except:
+                        note(u"Impossible to convert links. Try again", "error")
+                        self.unlock_ui()
+                        return False
+                    msg.replace(t,tu)
+            # second, divide message in several 140 char parts
+            msgs = self._splitmsg(msg)
+            # post it part, waiting 2s between each part
+            nm = len(msgs)
+            i = 1
+            for m in msgs:
+                self.set_title(u"UPD: %d/%d" % (i,nm))
+                try:
+                    self.twitter_api.update(m)
+                except:
+                    note(u"Impossible to send messages. Try again", "error")
+                    self.unlock_ui()
+                    return False                    
+                time.sleep(3)
+                i += 1
+        self.unlock_ui()
+        self.refresh()
+        return True
+        
+    def send_update(self):      
+        self.dlg = Notepad(self.send_update_cbk, self.update_msg)
+        self.dlg.run()
+        
     def send_tweet_to_tweeter(self): pass
     def reply(self): pass
     def follow_links(self):
@@ -204,8 +273,19 @@ class Iamdoing(Application):
         except:
             note(u"Impossible to launch browser","error")
         
-    def delete(self): pass
-    
+    def delete(self):
+        idx = self.body.current()
+        updt_id = self.timeline[self.page][idx][u'id']
+        self.lock_ui(u"Deleting ...")
+        try:
+            self.twitter_api.destroy(updt_id)
+        except:
+            note(u"Impossible to delete update. Try again", "error")
+        self.unlock_ui()
+        del self.timeline[self.page][idx]
+        del self.headlines[idx]
+        self.refresh()
+        
     def settings(self):
         def cbk():
             self.check_conn_params()
