@@ -95,24 +95,24 @@ class TwitterApi(object):
         """
         fudge = 1.25
         ma = time.mktime(self._strptime(ts))
-        delta  = int(time.time()) - int(ma)
+        delta  = int(time.mktime(time.gmtime())) - int(ma)
 
         if delta < (1 * fudge):
-          return u'~ 1s ago'
+          return u'~1s ago'
         elif delta < (60 * (1/fudge)):
-          return u'~ %ds ago' % (delta)
+          return u'~%ds ago' % (delta)
         elif delta < (60 * fudge):
-          return u'~ 1m ago'
+          return u'~1m ago'
         elif delta < (60 * 60 * (1/fudge)):
-          return u'~ %dm ago' % (delta / 60)
+          return u'~%dm ago' % (delta / 60)
         elif delta < (60 * 60 * fudge):
-          return u'~ 1h ago'
+          return u'~1h ago'
         elif delta < (60 * 60 * 24 * (1/fudge)):
-          return u'~ %dh ago' % (delta / (60 * 60))
+          return u'~%dh ago' % (delta / (60 * 60))
         elif delta < (60 * 60 * 24 * fudge):
-          return u'~ 1d ago'
+          return u'~1d ago'
         else:
-          return u'~ %dd ago' % (delta / (60 * 60 * 24))
+          return u'~%dd ago' % (delta / (60 * 60 * 24))
 
 
     def get_friends_timeline(self,page=1,count=20):
@@ -131,6 +131,14 @@ class TwitterApi(object):
         d = f.readlines()[0]
         return self.json_read(d)
 
+    def destroy(self,udpt_id):
+        """ Destroy the status specified by udpt_id
+        """
+        url = 'http://twitter.com/statuses/destroy/%s.json' % udpt_id
+        f = self._get_urlopener().open(url,"")
+        d = f.readlines()[0]
+        return self.json_read(d)
+    
     def json_read(self,msg):
         """ Converts a json response from twitter in a python object
         """
