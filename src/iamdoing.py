@@ -10,6 +10,7 @@ from wmutil import *
 from wmglobals import VERSION, DEFDIR
 from persist import DB
 from s60twitter import TwitterApi
+from canvaslistbox import CanvasListBox
 
 __all__ = [ "Iamdoing" ]
 __author__ = "Marcelo Barros de Almeida (marcelobarrosalmeida@gmail.com)"
@@ -29,15 +30,15 @@ class Iamdoing(Application):
         menu = [ (u"Setting", self.settings),
                  (u"About", self.about),
                  (u"Close", self.close_app)]
-        self.body = Listbox([(u"", u"")], self.check_update_value )
-        Application.__init__(self,  u"I am doing ...", self.body, menu )
+        self.body = CanvasListBox([u""], self.check_update_value)
+        Application.__init__(self,  u"I am doing ...", self.body, menu)
         self.dlg = None
         self.twitter_user = ""
         self.twitter_password = ""
         self.proxy = ""
         self.twitter_api = None
         self.page = 1
-        self.headlines = [(u"",u"")]
+        self.headlines = [u""]
         self.timeline = {}
         self.last_idx = 0
         self.update_msg = ""
@@ -47,8 +48,6 @@ class Iamdoing(Application):
 
         self.bind(key_codes.EKeyRightArrow, self.inc_page)
         self.bind(key_codes.EKeyLeftArrow, self.dec_page)
-        self.bind(key_codes.EKeyUpArrow, self.key_up)
-        self.bind(key_codes.EKeyDownArrow, self.key_down)
         
     def check_conn_params(self):
         if DB["proxy_enabled"] == u"True":
@@ -82,24 +81,6 @@ class Iamdoing(Application):
                 self.page = 1
             else:
                 self.refresh_timeline()
-                
-    def key_up(self):
-        if not self.ui_is_locked():
-            p = app.body.current() - 1
-            m = len( self.headlines )
-            if p < 0:
-                p = m - 1
-            self.set_title(u"[%d/%d] Page %d" % (p+1,m,self.page))
-            #self.tooltip.show(self.headlines[p][1], (0,30), 1750, 0.25, appuifw.EHLeftVTop )
-
-    def key_down(self):
-        if not self.ui_is_locked():
-            p = app.body.current() + 1
-            m = len( self.headlines )
-            if p >= m:
-                p = 0
-            self.set_title(u"[%d/%d] Page %d" % (p+1,m,self.page))
-            #self.tooltip.show(self.headlines[p][1], (30,30), 1750, 0.25, appuifw.EHLeftVTop )
 
     def check_update_value(self):
         if not self.ui_is_locked():
@@ -109,8 +90,6 @@ class Iamdoing(Application):
         idx = self.body.current()
         self.last_idx = idx
         menu = []
-        if self.timeline.has_key(self.page):
-            menu += [(u"Details", self.details)]
         menu += [(u"Send update", self.send_update)]
         if not self._is_mine(idx) and self.timeline.has_key(self.page):
             menu += [(u"Reply", self.reply)]
@@ -140,12 +119,6 @@ class Iamdoing(Application):
             if self.timeline[self.page][idx][u'user'][u'screen_name'] == self.twitter_user:
                 return True
         return False
-    
-    def details(self):
-        idx = self.body.current()
-        #txt = self.headlines[idx][0] + u"\n" + self.headlines[idx][1]
-        txt = self.headlines[idx][1]
-        note(txt,"info")
 
     def refresh_pages(self):
         self.timeline = {}
@@ -171,7 +144,7 @@ class Iamdoing(Application):
                 r1 += u" to %s" % msg[u'in_reply_to_screen_name']
             r1 += u" %s" % self.twitter_api.human_msg_age(msg[u'created_at'])
             r2 = msg[u'text']
-            self.headlines.append((r1,r2))
+            self.headlines.append(r1 + u" " + r2)
         self.last_idx = 0
         self.refresh()
 
@@ -305,9 +278,9 @@ class Iamdoing(Application):
         Application.refresh(self)
         idx = self.body.current()
         if not self.headlines:
-            self.headlines = [(u"", u"")]
+            self.headlines = [u""]
         self.last_idx = min( self.last_idx, len(self.headlines)-1 )
-        app.body.set_list(self.headlines, self.last_idx)
+        app.body.set_list(self.headlines)#, self.last_idx)
         self.set_title(u"Page %d" % (self.page))
 
     def clear_cache(self):
