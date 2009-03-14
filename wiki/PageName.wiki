@@ -1,0 +1,9 @@
+#summary Changelog
+
+= 0.0.5 =
+
+  * Listbox on canvas roughly implemented and supported.
+
+= 0.0.1 =
+
+ * Initial version, alpha stage
