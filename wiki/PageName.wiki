@@ -1,6 +1,6 @@
 #summary Changelog
 
-= 0.0.5 20080314 =
+= 0.0.5 - 20080314 =
 
   * Listbox on canvas roughly implemented and supported.
 
