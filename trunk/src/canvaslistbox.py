@@ -7,12 +7,44 @@ import graphics
 import key_codes
 
 class CanvasListBox(Canvas):
+    """
+     /--(XA,YA)
+    +----------------------------------+
+    |     ^                       c    |
+    |     | a                   <----->|
+    |  b  v                       d    |
+    |<--->+---------------------+---+  |
+    |     |                     | s |  |
+    |     |                     | c |  |
+    |     |   List elements     | r |  |
+    |     |                     | o |  |    
+    |     |                     | l |  |
+    |     |                     | l |  |
+    |     +---------------------+---+  |
+    +----------------------------------+
+                             (XB,YB)--/
+                             
+    a = TEXT_LEFT_MARGIN
+    b = TEXT_LEFT_MARGIN
+    c = TEXT_RIGHT_MARGIN
+    d = SCROLL_BAR_W
+
+    ----------------- ^
+    Text              | e
+    ----------------- v
+    ----------------- |<-- f
+    
+     e = TEXT_H
+     f = TEXT_LINE_SEP
+    
+    """
     BLACK = (0,0,0)
     WHITE = (255,255,255)
     DARK_GREEN = (0,102,0)
     BLUE1 = (51,204,255)
     YELLOW = (255,255,102)
-
+    MED_LIGHT_BLUE = (124,104,238)
+    
     XA = 0
     YA = 0
     XB = 0
@@ -21,17 +53,14 @@ class CanvasListBox(Canvas):
     SCROLL_BAR_W = 5
     SCROLL_BAR_COLOR = WHITE
 
-    #SELECTION_RADIUS = 3
-    #SELECTION_DIAMETER = 2*SELECTION_RADIUS
-    #SELECTION_SCROLL_BAR_DIST = 3
-
-    SELECTION_COLOR = DARK_GREEN
+    SELECTION_COLOR = MED_LIGHT_BLUE
+    BACKGROUND = BLACK
 
     TEXT_LEFT_MARGIN = 2
     TEXT_RIGHT_MARGIN = SCROLL_BAR_W
     TEXT_H = 12
     TEXT_LINE_SEP = 5
-    TEXT_COLOR = YELLOW
+    TEXT_COLOR = WHITE
     TEXT_FONT = 'dense'
     
     def __init__(self,elements,cbk=lambda:None):
@@ -69,9 +98,9 @@ class CanvasListBox(Canvas):
             ya = self.TEXT_LEFT_MARGIN
             for m in range(self._current_sel_in_view):
                 n = self._selection_view[0] + m
-                ya += self._proc_elements[n]['num_lines']*(self.TEXT_H + self.TEXT_LINE_SEP)
+                ya += self._proc_elements[n]['height']
             yb = ya + self._proc_elements[self._selection_view[0] +
-                                          self._current_sel_in_view]['num_lines']*(self.TEXT_H + self.TEXT_LINE_SEP)
+                                          self._current_sel_in_view]['height']
             ya -= self.TEXT_LINE_SEP/2
             yb -= self.TEXT_LINE_SEP/2
             self._screen.rectangle((xa,ya,xb,yb),
@@ -82,8 +111,8 @@ class CanvasListBox(Canvas):
         x = self.TEXT_LEFT_MARGIN
         y = self.TEXT_LEFT_MARGIN + self.TEXT_H
         n = self._selection_view[0]
+        bg = 0
         while y < self.YB and n < len(self._proc_elements):
-        #for n in range(self._selection_view[0],self._selection_view[1]):
             ele = self._proc_elements[n]
             for m in range(ele['num_lines']):
                 self._screen.text((x,y),ele['text'][m], fill = self.TEXT_COLOR, font = self.TEXT_FONT)
@@ -94,19 +123,17 @@ class CanvasListBox(Canvas):
         n = self._selection_view[0]
         y = self.TEXT_LEFT_MARGIN
         while y < self.YB and n < len(self._proc_elements):
-            y += self._proc_elements[n]['num_lines']*(self.TEXT_H + self.TEXT_LINE_SEP)
+            y += self._proc_elements[n]['height']
             n += 1
         if y >= self.YB:
             # ensure all elements in view are visible
             n -= 1
         # base index is 0
         self._selection_view[1] = n - 1
-        #print "sel view =",self._selection_view
             
     def up_key(self):
         if self._current_sel <= 0:
             return       
-        #print "cursel, curselvw", self._current_sel, self._current_sel_in_view, self._selection_view
         n = self._current_sel - 1
         if n < self._selection_view[0]:
             self._selection_view[0] -= 1
@@ -115,13 +142,11 @@ class CanvasListBox(Canvas):
             self._current_sel_in_view -= 1
             
         self._current_sel = self._current_sel_in_view + self._selection_view[0]
-        #print "cursel, curselvw", self._current_sel, self._current_sel_in_view , self._selection_view
         self.redraw_list()               
 
     def down_key(self):
         if self._current_sel >= (len(self._proc_elements) - 1):
             return
-        #print "cursel, curselvw", self._current_sel, self._current_sel_in_view , self._selection_view
         n = self._current_sel + 1
         if n > self._selection_view[1]:
             # ensure that selected item in inside the view, increasing the begining until it fits
@@ -133,19 +158,19 @@ class CanvasListBox(Canvas):
             self._current_sel_in_view += 1
 
         self._current_sel = n
-        #self._current_sel_in_view + self._selection_view[0]
-        #print "cursel, curselvw", self._current_sel, self._current_sel_in_view , self._selection_view
         self.redraw_list()            
 
     def build_entries(self,elements):
         self._proc_elements = []
         for text in elements:
+            # text: array with all lines for the current text, already splitted
+            # num_line: len of array
+            # height: how much height is necessary for displaying this text
             reg = {}
             reg['text'] = self.split_text(text)
             reg['num_lines'] = len(reg['text'])
             reg['height'] = reg['num_lines']*(self.TEXT_H + self.TEXT_LINE_SEP)
             self._proc_elements.append(reg)
-            #print reg
             
     # modified version of TextRenderer.chop 
     # http://discussion.forum.nokia.com/forum/showthread.php?t=124666
@@ -163,12 +188,9 @@ class CanvasListBox(Canvas):
                 lines.append(text_left)
                 break
                     
-            #print "tor:" + str(to_right) + " fits:" + str(fits)
+
             slice = text_left[0:fits]
-        
-            # How many chars we can skip at the end of the row
-            # (whitespaces at the end of the row)
-            adjust = 0
+            adjust = 0 # (preserve or not whitespaces at the end of the row)
         
             if len(slice) < len(text_left):
                 # find the separator character closest to the right
@@ -191,7 +213,7 @@ class CanvasListBox(Canvas):
         pass
 
     def clear_list(self):
-        self._screen.clear(self.BLACK)
+        self._screen.clear(self.BACKGROUND)
         self.blit(self._screen)
 
     def current(self):
