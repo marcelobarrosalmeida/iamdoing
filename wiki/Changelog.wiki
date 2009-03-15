@@ -1,5 +1,11 @@
 #summary Changelog
 
+
+= 0.0.6 - 20080315 =
+ * Better colors in listbox
+ * Better internal doc
+ * Faster redrawing
+
 = 0.0.5 - 20080314 =
 
   * Listbox on canvas roughly implemented and supported.
