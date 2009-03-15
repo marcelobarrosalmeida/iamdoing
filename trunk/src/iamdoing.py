@@ -89,15 +89,14 @@ class Iamdoing(Application):
     def update_value(self):
         idx = self.body.current()
         self.last_idx = idx
-        menu = []
-        menu += [(u"Send update", self.send_update)]
+        menu = [(u"Refresh", self.refresh_pages),
+                (u"Send update", self.send_update)]
         if not self._is_mine(idx) and self.timeline.has_key(self.page):
             menu += [(u"Reply", self.reply)]
         if self._has_link(idx):
             menu += [(u"Follow links", self.follow_links)]
         if self._is_mine(idx):
             menu += [(u"Delete",self.delete)]
-        menu += [(u"Refresh", self.refresh_pages)]
             
         op = popup_menu(map( lambda x: x[0], menu ), u"Menu:")
         if op is not None:
