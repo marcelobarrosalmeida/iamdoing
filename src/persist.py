@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import e32dbm
-from wmglobals import DEFDIR
+from wmglobals import DEFDIR, AVATARSDIR
 from wmutil import *
 
 __all__ = [ "Persist", "DB" ]
@@ -44,7 +44,8 @@ class Persist(dict):
 
     def check_dirs(self):
         dirs = (DEFDIR,
-                os.path.join(DEFDIR,"cache"))
+                os.path.join(DEFDIR,"cache"),
+                AVATARSDIR)
         for d in dirs:
             if not os.path.exists(d):
                 try:
