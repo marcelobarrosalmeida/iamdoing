@@ -11,6 +11,7 @@ from wmglobals import VERSION, DEFDIR, AVATARSDIR
 from persist import DB
 from s60twitter import TwitterApi
 from canvaslistbox import CanvasListBox
+from urllibproxy import UrllibProxy
 
 __all__ = [ "Iamdoing" ]
 __author__ = "Marcelo Barros de Almeida (marcelobarrosalmeida@gmail.com)"
@@ -136,6 +137,7 @@ class Iamdoing(Application):
                 self.refresh()
                 return
             # get all avatars not yet in local cache
+            urlprx = UrllibProxy(self.proxy)
             for u in self.timeline[self.page]:
                 url = u[u'user'][u'profile_image_url']
                 uid = str(u[u'user'][u'id'])
@@ -144,7 +146,7 @@ class Iamdoing(Application):
                 if not os.path.exists(img_file):
                     self.set_title(u"Updating %s" % u[u'user'][u'screen_name'])
                     try:
-                        urllib.urlretrieve(url,img_file)
+                        urlprx.urlretrieve(url,img_file)
                     except:
                         note(u"Avatar for %s failed" % u[u'user'][u'screen_name'],"error")
             self.unlock_ui()
