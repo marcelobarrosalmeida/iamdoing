@@ -76,7 +76,7 @@ class TwitterApi(object):
         """
         status = 'status=' + status
         f = self._get_urlopener().open("http://twitter.com/statuses/update.json", status)
-        d = f.readlines()[0]
+        d = f.read()
         return self.json_read(d)
 
     def _strptime(self,ts):
@@ -118,17 +118,19 @@ class TwitterApi(object):
     def get_friends_timeline(self,page=1,count=20):
         """ Return friends timeline for current user and his friends
         """
-        url = 'http://twitter.com/statuses/friends_timeline.json?page=%d&count=%d' % (page,count)
+        params = urllib.urlencode({"page":page,"count":count})
+        url = "http://twitter.com/statuses/friends_timeline.json?" + params
         f = self._get_urlopener().open(url)
-        d = f.readlines()[0]
+        d = f.read()
         return self.json_read(d)
     
     def get_user_timeline(self,page=1,count=20):
         """ Return friends timeline for current user
         """
-        url = 'http://twitter.com/statuses/user_timeline.json?page=%d&count=%d' % (page,count)
+        params = urllib.urlencode({"page":page,"count":count})
+        url = "http://twitter.com/statuses/friends_timeline.json?" + params
         f = self._get_urlopener().open(url)
-        d = f.readlines()[0]
+        d = f.read()
         return self.json_read(d)
 
     def destroy(self,udpt_id):
@@ -136,7 +138,7 @@ class TwitterApi(object):
         """
         url = 'http://twitter.com/statuses/destroy/%s.json' % udpt_id
         f = self._get_urlopener().open(url,"")
-        d = f.readlines()[0]
+        d = f.read()
         return self.json_read(d)
     
     def json_read(self,msg):
