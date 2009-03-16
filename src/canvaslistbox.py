@@ -5,6 +5,7 @@ from appuifw import *
 import e32
 import graphics
 import key_codes
+import os
 
 class CanvasListBox(Canvas):
     """
@@ -67,13 +68,15 @@ class CanvasListBox(Canvas):
     TEXT_LINE_SEP = 3
     TEXT_COLOR = WHITE
     TEXT_FONT = 'dense'
+
+    AVATAR_H = 50 
     
-    def __init__(self,elements,cbk=lambda:None):
+    def __init__(self,elements,avatars=None,cbk=lambda:None):
         Canvas.__init__(self,
                         redraw_callback = self.redraw_list,
                         event_callback = self.event_list)
         self._screen = graphics.Image.new(self.size)
-        self.XA = self.TEXT_LEFT_MARGIN
+        self.XA = self.TEXT_LEFT_MARGIN + self.AVATAR_H
         self.YA = self.TEXT_LEFT_MARGIN
         self.XB, self.YB = self.size
         self.XB -= self.TEXT_RIGHT_MARGIN
@@ -83,7 +86,7 @@ class CanvasListBox(Canvas):
         self.YB_SCR = self.size[1]
         
         self.cbk = cbk
-        self.set_list(elements)
+        self.set_list(elements,avatars)
         self.bind(key_codes.EKeyUpArrow, self.up_key)
         self.bind(key_codes.EKeyDownArrow, self.down_key)
         self.bind(key_codes.EKeySelect, self.cbk)
@@ -93,6 +96,7 @@ class CanvasListBox(Canvas):
         self.draw_scroll_bar()
         self.draw_selection_box()
         self.redraw_elements()
+        self.blit(self._screen)
 
     def draw_scroll_bar(self):
         self._screen.rectangle((self.XA_SCR, self.YA_SCR, self.XB_SCR, self.YB_SCR),
@@ -124,12 +128,23 @@ class CanvasListBox(Canvas):
         x = self.XA
         y = self.YA + self.TEXT_H
         n = self._selection_view[0]
-        bg = 0
         while y < self.YB and n < len(self._proc_elements):
             ele = self._proc_elements[n]
+            # text
+            yt = 0
             for m in range(ele['num_lines']):
-                self._screen.text((x,y),ele['text'][m], fill = self.TEXT_COLOR, font = self.TEXT_FONT)
-                y += self.TEXT_H + self.TEXT_LINE_SEP
+                self._screen.text((x,y+yt),ele['text'][m], fill = self.TEXT_COLOR, font = self.TEXT_FONT)
+                yt += self.TEXT_H + self.TEXT_LINE_SEP
+            if yt < self.AVATAR_H:
+                yt = self.AVATAR_H
+            ya = y + (yt - 48)/2 - self.TEXT_H
+            y += yt
+            # avatars
+            #self._screen.text((x,y+15),u"%d,%d"%(0,y-self.TEXT_H),
+            #                fill = self.YELLOW,
+            #                font = 'normal')
+            #self._screen.blit(ele['img'],(0,y-self.TEXT_H),((0,0),ele['img'].size))
+            self._screen.blit(ele['img'],(0,0),((0,ya),ele['img'].size))            
             n += 1
 
     def calculate_sel_view(self):
@@ -175,6 +190,7 @@ class CanvasListBox(Canvas):
 
     def build_entries(self,elements):
         self._proc_elements = []
+        n = 0
         for text in elements:
             # text: array with all lines for the current text, already splitted
             # num_line: len of array
@@ -183,7 +199,18 @@ class CanvasListBox(Canvas):
             reg['text'] = self.split_text(text)
             reg['num_lines'] = len(reg['text'])
             reg['height'] = reg['num_lines']*(self.TEXT_H + self.TEXT_LINE_SEP)
+            if reg['height'] < self.AVATAR_H:
+                reg['height'] = self.AVATAR_H
+            img = graphics.Image.new((48,48))
+            img.clear(self.BACKGROUND)
+            #improve it ! make a cache, do not load the same image again
+            if self.avatars:
+                if os.path.exists(self.avatars[n]):
+                    #print "loading", self.avatars[n]
+                    img.load(self.avatars[n])
+            reg['img'] = img
             self._proc_elements.append(reg)
+            n += 1
             
     # modified version of TextRenderer.chop 
     # http://discussion.forum.nokia.com/forum/showthread.php?t=124666
@@ -232,7 +259,8 @@ class CanvasListBox(Canvas):
     def current(self):
         return self._current_sel
 
-    def set_list(self,elements):
+    def set_list(self,elements,avatars=None):
+        self.avatars = avatars
         self._current_sel = 0
         self._current_sel_in_view = 0
         self._selection_view = [0,0]
