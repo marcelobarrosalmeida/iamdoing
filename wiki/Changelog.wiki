@@ -1,5 +1,8 @@
 #summary Changelog
 
+= 0.0.8 - 20080316 =
+ * proxy support added when downloading avatars
+
 = 0.0.7 - 20080316 =
  * Now displaying avatars
  * Slower version, need a image cache
