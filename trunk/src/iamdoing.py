@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import re, time, os
+import re, time, os, urllib
 import key_codes
 from appuifw import *
 import appuifw
@@ -7,7 +7,7 @@ from window import Application, Dialog
 from about import About
 from settings import Settings, sel_access_point
 from wmutil import *
-from wmglobals import VERSION, DEFDIR
+from wmglobals import VERSION, DEFDIR, AVATARSDIR
 from persist import DB
 from s60twitter import TwitterApi
 from canvaslistbox import CanvasListBox
@@ -30,7 +30,7 @@ class Iamdoing(Application):
         menu = [ (u"Setting", self.settings),
                  (u"About", self.about),
                  (u"Close", self.close_app)]
-        self.body = CanvasListBox([u""], self.check_update_value)
+        self.body = CanvasListBox([], [], self.check_update_value)
         Application.__init__(self,  u"I am doing ...", self.body, menu)
         self.dlg = None
         self.twitter_user = ""
@@ -38,7 +38,8 @@ class Iamdoing(Application):
         self.proxy = ""
         self.twitter_api = None
         self.page = 1
-        self.headlines = [u""]
+        self.headlines = []
+        self.avatars = []
         self.timeline = {}
         self.last_idx = 0
         self.update_msg = ""
@@ -134,9 +135,22 @@ class Iamdoing(Application):
                 self.unlock_ui()
                 self.refresh()
                 return
+            # get all avatars not yet in local cache
+            for u in self.timeline[self.page]:
+                url = u[u'user'][u'profile_image_url']
+                uid = str(u[u'user'][u'id'])
+                img_type = url[url.rfind("."):]
+                img_file = os.path.join(AVATARSDIR,uid+img_type).lower()
+                if not os.path.exists(img_file):
+                    self.set_title(u"Updating %s" % u[u'user'][u'screen_name'])
+                    try:
+                        urllib.urlretrieve(url,img_file)
+                    except:
+                        note(u"Avatar for %s failed" % u[u'user'][u'screen_name'],"error")
             self.unlock_ui()
                 
         self.headlines = []
+        self.avatars = []
         for msg in self.timeline[self.page]:
             r1 = msg[u'user'][u'screen_name']
             if msg[u'in_reply_to_screen_name']:
@@ -144,6 +158,9 @@ class Iamdoing(Application):
             r1 += u" %s" % self.twitter_api.human_msg_age(msg[u'created_at'])
             r2 = msg[u'text']
             self.headlines.append(r1 + u" " + r2)
+            url = msg[u'user'][u'profile_image_url']
+            img = str(msg[u'user'][u'id'])+url[url.rfind("."):]
+            self.avatars.append(os.path.join(AVATARSDIR,img.lower()))
         self.last_idx = 0
         self.refresh()
 
@@ -277,9 +294,10 @@ class Iamdoing(Application):
         Application.refresh(self)
         idx = self.body.current()
         if not self.headlines:
-            self.headlines = [u""]
+            self.headlines = []
+            self.avatars = []
         self.last_idx = min( self.last_idx, len(self.headlines)-1 )
-        app.body.set_list(self.headlines)#, self.last_idx)
+        app.body.set_list(self.headlines,self.avatars)#, self.last_idx)
         self.set_title(u"Page %d" % (self.page))
 
     def clear_cache(self):
