@@ -8,21 +8,21 @@ import key_codes
 
 class CanvasListBox(Canvas):
     """
-     /--(XA,YA)
+    
     +----------------------------------+
     |     ^                       c    |
     |     | a                   <----->|
     |  b  v                       d    |
     |<--->+---------------------+---+  |
-    |     |                     | s |  |
+    |     |\--(XA,YA)           | s |  |
     |     |                     | c |  |
     |     |   List elements     | r |  |
     |     |                     | o |  |    
     |     |                     | l |  |
-    |     |                     | l |  |
+    |     |           (XB,YB)--\| l |  |
     |     +---------------------+---+  |
     +----------------------------------+
-                             (XB,YB)--/
+                             
                              
     a = TEXT_LEFT_MARGIN
     b = TEXT_LEFT_MARGIN
@@ -49,6 +49,11 @@ class CanvasListBox(Canvas):
     YA = 0
     XB = 0
     YB = 0
+
+    XA_SCR = 0
+    XB_SCR = 0
+    YA_SCR = 0
+    YB_SCR = 0
     
     SCROLL_BAR_W = 5
     SCROLL_BAR_COLOR = WHITE
@@ -59,7 +64,7 @@ class CanvasListBox(Canvas):
     TEXT_LEFT_MARGIN = 2
     TEXT_RIGHT_MARGIN = SCROLL_BAR_W
     TEXT_H = 12
-    TEXT_LINE_SEP = 5
+    TEXT_LINE_SEP = 3
     TEXT_COLOR = WHITE
     TEXT_FONT = 'dense'
     
@@ -68,7 +73,15 @@ class CanvasListBox(Canvas):
                         redraw_callback = self.redraw_list,
                         event_callback = self.event_list)
         self._screen = graphics.Image.new(self.size)
+        self.XA = self.TEXT_LEFT_MARGIN
+        self.YA = self.TEXT_LEFT_MARGIN
         self.XB, self.YB = self.size
+        self.XB -= self.TEXT_RIGHT_MARGIN
+        self.XA_SCR = self.XB
+        self.XB_SCR = self.size[0]
+        self.YA_SCR = 0
+        self.YB_SCR = self.size[1]
+        
         self.cbk = cbk
         self.set_list(elements)
         self.bind(key_codes.EKeyUpArrow, self.up_key)
@@ -82,20 +95,20 @@ class CanvasListBox(Canvas):
         self.redraw_elements()
 
     def draw_scroll_bar(self):
-        self._screen.rectangle((self.XB - self.SCROLL_BAR_W, self.YA, self.XB, self.YB),
+        self._screen.rectangle((self.XA_SCR, self.YA_SCR, self.XB_SCR, self.YB_SCR),
                                outline = self.SCROLL_BAR_COLOR)
         list_size = len(self._proc_elements)
         if list_size:
-            sz = (self.YB - self.YA)/list_size + 1 # rounding up always
+            sz = (self.YB_SCR - self.YA_SCR)/list_size + 1 # rounding up always
             pos = self._current_sel*sz
-            self._screen.rectangle((self.XB - self.SCROLL_BAR_W, pos, self.XB, pos + sz),
+            self._screen.rectangle((self.XA_SCR, pos, self.XB_SCR, pos + sz),
                                    outline = self.SCROLL_BAR_COLOR, fill = self.SCROLL_BAR_COLOR)            
 
     def draw_selection_box(self):
         if len(self._proc_elements):
-            xa = 0
-            xb = self.XB - self.TEXT_RIGHT_MARGIN
-            ya = self.TEXT_LEFT_MARGIN
+            xa = self.XA
+            xb = self.XB
+            ya = self.YA
             for m in range(self._current_sel_in_view):
                 n = self._selection_view[0] + m
                 ya += self._proc_elements[n]['height']
@@ -108,8 +121,8 @@ class CanvasListBox(Canvas):
                                    fill = self.SELECTION_COLOR)
 
     def redraw_elements(self):
-        x = self.TEXT_LEFT_MARGIN
-        y = self.TEXT_LEFT_MARGIN + self.TEXT_H
+        x = self.XA
+        y = self.YA + self.TEXT_H
         n = self._selection_view[0]
         bg = 0
         while y < self.YB and n < len(self._proc_elements):
@@ -121,7 +134,7 @@ class CanvasListBox(Canvas):
 
     def calculate_sel_view(self):
         n = self._selection_view[0]
-        y = self.TEXT_LEFT_MARGIN
+        y = self.YA
         while y < self.YB and n < len(self._proc_elements):
             y += self._proc_elements[n]['height']
             n += 1
@@ -177,7 +190,7 @@ class CanvasListBox(Canvas):
     def split_text(self, text):
         lines = []
         text_left = text
-        width = self.XB - self.TEXT_LEFT_MARGIN - self.TEXT_RIGHT_MARGIN
+        width = self.XB - self.XA 
         while len(text_left) > 0: 
             bounding, to_right, fits = self.measure_text(text_left,
                                                          font=self.TEXT_FONT,
