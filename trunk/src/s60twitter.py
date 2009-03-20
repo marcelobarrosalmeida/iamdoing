@@ -71,14 +71,22 @@ class TwitterApi(object):
         urlopener.addheaders = self.headers
         return urlopener
         
-    def update(self, status):
+    def update(self, status, in_reply_to=""):
         """ Update twitter with new status message
         """
-        status = 'status=' + status
-        f = self._get_urlopener().open("http://twitter.com/statuses/update.json", status)
+        params = urllib.urlencode({"status":status,"in_reply_to_status_id":in_reply_to})
+        f = self._get_urlopener().open("http://twitter.com/statuses/update.json", params)
         d = f.read()
         return self.json_read(d)
 
+    def new_direct_message(self,text,user):
+        """ Send a direct message (text) to user
+        """
+        params = urllib.urlencode({"text":text,"user":user})
+        f = self._get_urlopener().open("http://twitter.com/direct_messages/new.json", params)
+        d = f.read()
+        return self.json_read(d)
+    
     def _strptime(self,ts):
         months = [u'Jan',u'Feb',u'Mar',u'Apr',u'May',u'Jun',
                   u'Jul',u'Aug',u'Sep',u'Oct',u'Nov',u'Dec']    
