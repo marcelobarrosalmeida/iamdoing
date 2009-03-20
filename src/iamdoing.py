@@ -20,10 +20,34 @@ __copyright__ = "Copyright (c) 2009- Marcelo Barros de Almeida"
 __license__ = "GPLv3"
 
 class Notepad(Dialog):
-    def __init__(self, cbk, txt=u""):
-        menu = [(u"Save", self.close_app),
+    def __init__(self, cbk, txt=u"", twu=[], irto=""):
+        self.irto = irto
+        self.twu = twu
+        self.twu.sort()
+        menu = [(u"Send", self.close_app),
                 (u"Discard", self.cancel_app)]
+        if self.twu:
+            menu += [(u"Add user", self.adduser)]
         Dialog.__init__(self, cbk, u"New update", Text(txt), menu)
+
+    def adduser(self):
+        # this list may be large .... better to think about latter
+        sel = multi_selection_list(self.twu, style='checkbox', search_field=1)
+        if sel:
+            usrs = "".join([ u"@" + self.twu[idx] + u" " for idx in sel ])
+            self.body.add(usrs)
+
+    def close_app(self):
+        if not self.cancel:
+            yn = popup_menu([u"Yes",u"No"],u"Send update?")
+            if yn is None:
+                return
+            if yn == 1:
+                self.cancel = True
+            else:
+                self.cancel = False
+
+        Dialog.close_app(self)
         
 class Iamdoing(Application):
     
@@ -41,6 +65,7 @@ class Iamdoing(Application):
         self.page = 1
         self.headlines = []
         self.avatars = []
+        self.twt_users = {}
         self.timeline = {}
         self.last_idx = 0
         self.update_msg = ""
@@ -149,6 +174,9 @@ class Iamdoing(Application):
                         urlprx.urlretrieve(url,img_file)
                     except:
                         note(u"Avatar for %s failed" % u[u'user'][u'screen_name'],"error")
+                if not self.twt_users.has_key(uid):
+                    self.twt_users[uid] = u[u'user'][u'screen_name']
+                    
             self.unlock_ui()
                 
         self.headlines = []
@@ -214,7 +242,7 @@ class Iamdoing(Application):
             for m in msgs:
                 self.set_title(u"UPD: %d/%d" % (i,nm))
                 try:
-                    self.twitter_api.update(m)
+                    self.twitter_api.update(m,self.dlg.irto)
                 except:
                     note(u"Impossible to send messages. Try again", "error")
                     self.unlock_ui()
@@ -225,12 +253,17 @@ class Iamdoing(Application):
         self.refresh()
         return True
         
-    def send_update(self):      
-        self.dlg = Notepad(self.send_update_cbk, self.update_msg)
+    def send_update(self,irto=""):
+        twu = self.twt_users.values()     
+        self.dlg = Notepad(self.send_update_cbk, self.update_msg, twu, irto)
         self.dlg.run()
         
     def send_tweet_to_tweeter(self): pass
-    def reply(self): pass
+    def reply(self):
+        idx = self.body.current()
+        irto = self.timeline[self.page][idx][u'id']
+        self.send_update(irto)
+        
     def follow_links(self):
         idx = self.body.current()
         msg = self.timeline[self.page][idx][u'text']
