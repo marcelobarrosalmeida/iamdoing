@@ -605,3 +605,28 @@ class Dialog(Window):
         """
         self.cancel = True
         self.close_app()
+
+class Splash(Dialog):
+    """ This class shows a fullscreen image as a Splash
+    """
+    def __init__(self, cbk, filename, timer, timeout):
+        """ Creates the Splash and shows for timeout, using 
+            the timer parameter.
+        """
+        try:
+            self.splash_img = Image.open(filename)
+            self.canvas = Canvas(redraw_callback = self.handle_redraw)
+            Dialog.__init__(self, cbk, u"", self.canvas)
+            app.screen = 'full'
+            self.refresh()
+            timer.after(timeout)
+            self.close_app()
+            del self.splash_img
+            del self.canvas
+        except:
+            pass
+    
+    def handle_redraw(self, rect):
+        """ Method need to redraw the screen
+        """
+        self.canvas.blit(self.splash_img)
