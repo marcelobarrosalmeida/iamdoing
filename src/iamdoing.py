@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import re, time, os, urllib
+import re, time, os, urllib, sysinfo
 import key_codes
 from appuifw import *
 import appuifw
-from window import Application, Dialog
+from window import Application, Dialog, Splash
 from about import About
 from settings import Settings, sel_access_point
 from wmutil import *
@@ -16,7 +16,7 @@ from urllibproxy import UrllibProxy
 __all__ = [ "Iamdoing" ]
 __author__ = "Marcelo Barros de Almeida (marcelobarrosalmeida@gmail.com)"
 __version__ = VERSION
-__copyright__ = "Copyright (c) 2009- Marcelo Barros de Almeida"
+__copyright__ = "Copyright (c) 2009 - Marcelo Barros de Almeida"
 __license__ = "GPLv3"
 
 class Notepad(Dialog):
@@ -52,6 +52,28 @@ class Notepad(Dialog):
 class Iamdoing(Application):
     
     def __init__(self):
+        # #############################
+        #Splash screen steps
+        
+        #Checks the screen orientation (landscape or portrait)
+        w, h = sysinfo.display_pixels()
+        if w > h:
+            self.splash_image = os.getcwd() + u"graphics\\splash-landscape.png"
+        else:
+            self.splash_image = os.getcwd() + u"graphics\\splash-protrait.png"
+        
+        def cbk_splash():
+            # NOP callback to splash class
+            return True
+        
+        #splash screen code
+        self.main_timer = Ao_timer()
+        Splash(cbk_splash, self.splash_image, self.main_timer, 2)
+        app.screen = 'normal'
+        
+        #End of splash screen steps
+        # #############################
+        
         menu = [ (u"Setting", self.settings),
                  (u"About", self.about),
                  (u"Close", self.close_app)]
