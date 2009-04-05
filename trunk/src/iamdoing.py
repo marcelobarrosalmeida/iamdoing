@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import re, time, os, urllib, sysinfo
 import key_codes
+import sys
+from e32 import *
 from appuifw import *
 import appuifw
 from window import Application, Dialog, Splash
@@ -52,28 +54,6 @@ class Notepad(Dialog):
 class Iamdoing(Application):
     
     def __init__(self):
-        # #############################
-        #Splash screen steps
-        
-        #Checks the screen orientation (landscape or portrait)
-        w, h = sysinfo.display_pixels()
-        if w > h:
-            self.splash_image = os.getcwd() + u"graphics\\splash-landscape.png"
-        else:
-            self.splash_image = os.getcwd() + u"graphics\\splash-protrait.png"
-        
-        def cbk_splash():
-            # NOP callback to splash class
-            return True
-        
-        #splash screen code
-        self.main_timer = Ao_timer()
-        Splash(cbk_splash, self.splash_image, self.main_timer, 2)
-        app.screen = 'normal'
-        
-        #End of splash screen steps
-        # #############################
-        
         menu = [ (u"Setting", self.settings),
                  (u"About", self.about),
                  (u"Close", self.close_app)]
@@ -97,7 +77,41 @@ class Iamdoing(Application):
 
         self.bind(key_codes.EKeyRightArrow, self.inc_page)
         self.bind(key_codes.EKeyLeftArrow, self.dec_page)
+
+    def run(self):
+        # #############################
+        #Splash screen steps
         
+        #Get graphics path
+        #Code from Forum Nokia's Wiki 
+        try:
+            raise Exception
+        except Exception:
+            frame = sys.exc_info()[2].tb_frame
+            path = frame.f_code.co_filename
+        path = path.replace(u"iamdoing.py", u"")
+
+        #Checks the screen orientation (landscape or portrait)
+        w, h = sysinfo.display_pixels()
+        if w > h:
+            self.splash_image = path + "graphics\\splash-landscape.png"
+        else:
+            self.splash_image = path + "graphics\\splash-protrait.png"
+            
+        print self.splash_image
+
+        def cbk_splash():
+            # NOP callback to splash class
+            return True
+        
+        #splash screen code
+        self.main_timer = Ao_timer()
+        s = Splash(cbk_splash, self.splash_image, self.main_timer, 2)
+        app.screen = 'normal'
+        #End of splash screen steps
+        # #############################
+        Application.run(self)
+
     def check_conn_params(self):
         if DB["proxy_enabled"] == u"True":
             user = unicode_to_utf8( DB["proxy_user"] )

@@ -11,7 +11,7 @@ IF NOT EXIST %TMPDIR% mkdir %TMPDIR%
 IF NOT EXIST %TMPDIR%\graphics mkdir %TMPDIR%\graphics
 
 copy  %SRCDIR%\*.py  %TMPDIR%
-copy  %SRCDIR%\graphics\*.png %TMPDIR%\graphics
-REM copy  %SRCDIR%\graphics\icon.svg %TMPEXTRAS%\IAMDOING
+copy  %SRCDIR%\graphics\*.png %TMPDIR%\graphics\
+copy  %SRCDIR%\graphics\icon.svg %TMPDIR%\graphics\
 
-%PYTHON% ensymble.py py2sis --verbose --version="%VER%" --appname="%APPNAME%" --caps="%CAPBLS%" "%TMPDIR%" "%APPNAME%-%VER%.sis"
+%PYTHON% ensymble.py py2sis --verbose --version="%VER%" --icon="%TMPDIR%\graphics\icon.svg" --appname="%APPNAME%" --caps="%CAPBLS%" "%TMPDIR%" "%APPNAME%-%VER%.sis"

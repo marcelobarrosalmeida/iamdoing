@@ -615,7 +615,9 @@ class Splash(Dialog):
         """
         try:
             self.splash_img = Image.open(filename)
+            note(u"1")
             self.canvas = Canvas(redraw_callback = self.handle_redraw)
+            note(u"2")
             Dialog.__init__(self, cbk, u"", self.canvas)
             app.screen = 'full'
             self.refresh()
